@@ -2,6 +2,7 @@
 #include "input.h"
 #include "totp.h"
 #include "storage.h"
+#include "audio.h"
 #include <gb/gb.h>
 #include <gbdk/console.h>
 #include <stdio.h>
@@ -99,6 +100,77 @@ void ui_print_countdown(uint8_t secs) {
     put_at(x+3u, y, '[');
     for (i = 0; i < 15u; i++) put_at(x + 4u + i, y, i < bars ? fill : blank);
     put_at(x + 19u, y, ']');
+}
+
+/* ---- settings screen --------------------------------------------------- */
+
+void ui_screen_settings(void) {
+    uint8_t row = 0u;        /* 0 = palette, 1 = sound */
+    uint8_t prev_pal   = 0xFFu;
+    uint8_t prev_snd   = 0xFFu;
+    uint8_t prev_row   = 0xFFu;
+
+    ui_clear();
+    gotoxy(0, 0); print_fixed("    == SETTINGS ==  ", 20u);
+    gotoxy(0, 1); print_fixed("--------------------", 20u);
+    gotoxy(0, 14); print_fixed("--------------------", 20u);
+    gotoxy(0, 15); print_fixed(" U/D:Field          ", 20u);
+    gotoxy(0, 16); print_fixed(" L/R:Change         ", 20u);
+    gotoxy(0, 17); print_fixed(" B/SELECT:Back      ", 20u);
+
+    for (;;) {
+        uint8_t pal = storage_get_palette();
+        uint8_t snd = storage_get_sound_enabled();
+        if (pal >= ui_get_palette_count()) pal = 0u;
+
+        if (pal != prev_pal || row != prev_row) {
+            put_at(1, 4, row == 0u ? '>' : ' ');
+            gotoxy(2, 4); print_fixed("Palette:    ", 12u);
+            put_at(15u, 4, ' ');
+            put_at(16u, 4, '0' + pal / 10u);
+            put_at(17u, 4, '0' + pal % 10u);
+            put_at(18u, 4, ' ');
+            prev_pal = pal;
+        }
+        if (snd != prev_snd || row != prev_row) {
+            put_at(1, 7, row == 1u ? '>' : ' ');
+            gotoxy(2, 7); print_fixed("Sound:      ", 12u);
+            gotoxy(15, 7); print_fixed(snd ? "ON " : "OFF", 3u);
+            prev_snd = snd;
+        }
+        prev_row = row;
+
+        wait_vbl_done();
+        input_update();
+
+        if (input_pressed(J_DOWN) && row < 1u) { row++; sfx_click(); }
+        if (input_pressed(J_UP)   && row > 0u) { row--; sfx_click(); }
+
+        if (input_pressed(J_LEFT) || input_pressed(J_RIGHT)) {
+            if (row == 0u) {
+                /* cycle palette */
+                uint8_t p = pal;
+                if (input_pressed(J_LEFT))
+                    p = (p == 0u) ? (uint8_t)(ui_get_palette_count() - 1u) : (uint8_t)(p - 1u);
+                else
+                    p = (uint8_t)((p + 1u) % ui_get_palette_count());
+                storage_set_palette(p);
+                ui_apply_palette(p);
+                sfx_click();
+            } else {
+                /* toggle sound */
+                uint8_t new_snd = !snd;
+                storage_set_sound_enabled(new_snd);
+                audio_set_enabled(new_snd);
+                if (new_snd) sfx_confirm();
+            }
+        }
+
+        if (input_pressed(J_B) || input_pressed(J_SELECT)) {
+            sfx_click();
+            return;
+        }
+    }
 }
 
 /* ---- boot splash ------------------------------------------------------- */
@@ -267,7 +339,7 @@ void ui_draw_main(uint8_t scroll, uint8_t selected, uint32_t unix_time) {
 
     gotoxy(0, 15); print_fixed("--------------------", 20u);
     gotoxy(0, 16); print_fixed(" A:View   START:Add ", 20u);
-    gotoxy(0, 17); print_fixed(" B:Sync  SELECT:Del ", 20u);
+    gotoxy(0, 17); print_fixed(" B:Sync   SELECT:Cfg", 20u);
 
     s_cache_window = window;
     s_cache_scroll = scroll;

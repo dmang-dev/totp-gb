@@ -50,4 +50,9 @@ void     storage_set_epoch(uint32_t epoch);
 uint8_t storage_get_palette(void);
 void    storage_set_palette(uint8_t idx);
 
+/* Sound on/off (defaults to on for fresh saves). Stored in high bit of the
+ * palette byte to avoid disturbing the SRAM layout. */
+uint8_t storage_get_sound_enabled(void);
+void    storage_set_sound_enabled(uint8_t on);
+
 #endif

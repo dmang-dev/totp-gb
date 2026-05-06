@@ -35,4 +35,11 @@ void ui_clear(void);
 /* Animated boot splash. Blocks until any button or 2 seconds. */
 void ui_screen_splash(void);
 
+/* Settings screen — palette picker + sound toggle. Returns when user backs out. */
+void ui_screen_settings(void);
+
+/* Defined in main.c, vary per build */
+uint8_t ui_get_palette_count(void);
+void    ui_apply_palette(uint8_t idx);
+
 #endif

@@ -130,16 +130,36 @@ void storage_set_epoch(uint32_t epoch) {
     sram_disable();
 }
 
+/* Settings byte layout: bits 0-6 = palette index, bit 7 = sound MUTE flag.
+ * Existing saves had bit 7 clear → sound defaults to ON. */
 uint8_t storage_get_palette(void) {
     uint8_t v;
     sram_enable();
     v = sram_read(OFF_PALETTE);
     sram_disable();
-    return v;
+    return v & 0x7Fu;
 }
 
 void storage_set_palette(uint8_t idx) {
+    uint8_t cur;
     sram_enable();
-    sram_write(OFF_PALETTE, idx);
+    cur = sram_read(OFF_PALETTE) & 0x80u;        /* preserve mute bit */
+    sram_write(OFF_PALETTE, cur | (idx & 0x7Fu));
+    sram_disable();
+}
+
+uint8_t storage_get_sound_enabled(void) {
+    uint8_t v;
+    sram_enable();
+    v = sram_read(OFF_PALETTE);
+    sram_disable();
+    return (v & 0x80u) ? 0u : 1u;
+}
+
+void storage_set_sound_enabled(uint8_t on) {
+    uint8_t cur;
+    sram_enable();
+    cur = sram_read(OFF_PALETTE) & 0x7Fu;        /* keep palette index */
+    sram_write(OFF_PALETTE, cur | (on ? 0u : 0x80u));
     sram_disable();
 }

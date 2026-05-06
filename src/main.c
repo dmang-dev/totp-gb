@@ -78,6 +78,10 @@ static void apply_palette(uint8_t idx) {
     }
 }
 
+/* Public façade used by ui.c (settings screen) */
+uint8_t ui_get_palette_count(void) { return NUM_PALETTES; }
+void    ui_apply_palette(uint8_t idx) { apply_palette(idx); }
+
 #else /* DMG / MGB build ----------------------------------------------- */
 
 /*
@@ -106,6 +110,10 @@ static void apply_palette(uint8_t idx) {
     if (idx >= NUM_PALETTES) idx = 0;
     BGP_REG = bgp_palettes[idx];
 }
+
+/* Public façade used by ui.c (settings screen) */
+uint8_t ui_get_palette_count(void) { return NUM_PALETTES; }
+void    ui_apply_palette(uint8_t idx) { apply_palette(idx); }
 
 #endif
 
@@ -191,8 +199,9 @@ void main(void) {
     first_boot = !storage_init();
     g_base_epoch = storage_get_epoch();
 
-    /* Restore the user's last-chosen palette from SRAM (GBC colour or DMG BGP) */
+    /* Restore the user's last-chosen palette + sound preference from SRAM */
     apply_palette(storage_get_palette());
+    audio_set_enabled(storage_get_sound_enabled());
 
     /* Boot splash — skipped on first boot since we go straight to time-set */
     if (!first_boot && g_base_epoch != 0u) {
@@ -293,6 +302,13 @@ void main(void) {
             if (input_pressed(J_B)) {
                 sfx_confirm();
                 sync_time();
+                need_clear = 1u; prev_t = 0xFFFFFFFFUL;
+            }
+
+            /* Settings */
+            if (input_pressed(J_SELECT)) {
+                sfx_click();
+                ui_screen_settings();
                 need_clear = 1u; prev_t = 0xFFFFFFFFUL;
             }
         }
