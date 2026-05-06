@@ -101,6 +101,71 @@ void ui_print_countdown(uint8_t secs) {
     put_at(x + 19u, y, ']');
 }
 
+/* ---- boot splash ------------------------------------------------------- */
+
+void ui_screen_splash(void) {
+    /* Big "TOTP GB" letters drawn from the font font; animate by sliding
+     * a marquee underneath that moves left to right and back. */
+    static const char * const banner =
+        "++++++++ +++++++ +++++++ +++++++   +++++  +++++++";
+    static const char * const labels[5] = {
+        "  T   O   T   P     G B  ",
+        "                         ",
+        "    Authenticator        ",
+        "                         ",
+        "                         "
+    };
+    uint8_t  frame;
+    uint16_t banner_len;
+
+    ui_clear();
+
+    /* Draw centred title */
+    {
+        uint8_t y;
+        for (y = 0; y < 5u; y++) {
+            uint8_t x;
+            for (x = 0; x < 20u; x++) {
+                char c = labels[y][x];
+                put_at(x, 5u + y, c ? c : ' ');
+            }
+        }
+    }
+
+    put_at(0,  12, '+');
+    put_at(19, 12, '+');
+    put_at(2,  14, 'P'); put_at(3, 14, 'r'); put_at(4, 14, 'e'); put_at(5, 14, 's');
+    put_at(6,  14, 's'); put_at(8, 14, 'a'); put_at(9, 14, 'n'); put_at(10,14, 'y');
+    put_at(12, 14, 'b'); put_at(13,14, 'u'); put_at(14,14, 't'); put_at(15,14, 't');
+    put_at(16, 14, 'o'); put_at(17,14, 'n');
+
+    banner_len = 0u;
+    while (banner[banner_len]) banner_len++;
+
+    /* Animate: scroll a "+++++++" marquee through row 13 for ~2 seconds,
+     * exit early on any button press. */
+    for (frame = 0u; frame < 120u; frame++) {
+        uint8_t x;
+        uint16_t off = (uint16_t)frame % (banner_len + 18u);
+        for (x = 0; x < 18u; x++) {
+            uint16_t bi;
+            if (off + x < 18u || off + x - 18u >= banner_len) {
+                put_at(1u + x, 13u, ' ');
+            } else {
+                bi = off + x - 18u;
+                put_at(1u + x, 13u, banner[bi]);
+            }
+        }
+        wait_vbl_done(); wait_vbl_done();   /* ~30fps animation */
+        input_update();
+        if (input_pressed(J_A) || input_pressed(J_B) ||
+            input_pressed(J_START) || input_pressed(J_SELECT) ||
+            input_pressed(J_UP) || input_pressed(J_DOWN) ||
+            input_pressed(J_LEFT) || input_pressed(J_RIGHT))
+            break;
+    }
+}
+
 /* ---- main screen ------------------------------------------------------- */
 
 #define NAME_DISPLAY_W  13u    /* visible chars in the main list */

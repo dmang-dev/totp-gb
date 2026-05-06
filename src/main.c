@@ -194,6 +194,11 @@ void main(void) {
     /* Restore the user's last-chosen palette from SRAM (GBC colour or DMG BGP) */
     apply_palette(storage_get_palette());
 
+    /* Boot splash — skipped on first boot since we go straight to time-set */
+    if (!first_boot && g_base_epoch != 0u) {
+        ui_screen_splash();
+    }
+
     /* On first boot, ask the user to set the time immediately */
     if (first_boot || g_base_epoch == 0u) {
         ui_clear();

@@ -32,4 +32,7 @@ void ui_print_countdown(uint8_t secs);
 /* Clear the screen (fill background with spaces) */
 void ui_clear(void);
 
+/* Animated boot splash. Blocks until any button or 2 seconds. */
+void ui_screen_splash(void);
+
 #endif
