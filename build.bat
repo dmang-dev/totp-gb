@@ -20,7 +20,7 @@ REM SGB flag (-Wm-ys) goes through makebin, not the linker.
 set LFLAGS=-Wl-yt0x10 -Wl-ya1 -Wl-yo2
 set MFLAGS=-Wm-ys
 
-set SRCS=src\main.c src\sha1.c src\hmac.c src\base32.c src\rtc.c src\storage.c src\totp.c src\input.c src\ui.c src\audio.c
+set SRCS=src\main.c src\sha1.c src\hmac.c src\base32.c src\rtc.c src\storage.c src\totp.c src\input.c src\ui.c src\audio.c src\sgb_border.c
 
 set TARGET=%1
 if "%TARGET%"=="" set TARGET=both

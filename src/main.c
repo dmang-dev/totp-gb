@@ -123,6 +123,7 @@ void    ui_apply_palette(uint8_t idx) { apply_palette(idx); }
 #include "ui.h"
 #include "input.h"
 #include "audio.h"
+#include "sgb_border.h"
 
 /* Current Unix time = base_epoch + RTC elapsed seconds */
 static uint32_t g_base_epoch;
@@ -194,6 +195,9 @@ void main(void) {
 
     /* SGB detection + palette setup (no-op on plain DMG/MGB/CGB) */
     sgb_init();
+    /* Custom border (no-op when not on SGB). Must run before any UI draws
+     * since it temporarily clobbers VRAM during the CHR_TRN handshake. */
+    sgb_border_install();
 
     /* Init persistent storage (must precede any storage_get_*) */
     first_boot = !storage_init();
