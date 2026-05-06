@@ -1,0 +1,33 @@
+# Build artifacts
+*.gb
+*.gbc
+*.ihx
+*.map
+*.sym
+*.noi
+*.cdb
+*.adb
+*.lst
+*.rst
+*.asm
+*.o
+*.d
+s.cdb
+
+# GBDK toolchain (vendored locally, not committed)
+gbdk/
+
+# Reconstruction backup (used during git history setup)
+.reconstruct_backup/
+
+# SRAM saves
+*.srm
+*.sav
+
+# OS / editor
+Thumbs.db
+.DS_Store
+*.swp
+
+# Throwaway scripts
+totp_check.py
