@@ -156,6 +156,12 @@ void main(void) {
     DISPLAY_ON;
     SHOW_BKG;
 
+#ifdef GBC_BUILD
+    /* On real CGB hardware, switch to double-speed (2x CPU). Halves the
+     * time spent in HMAC-SHA1 and makes UI feel instant. No-op on DMG. */
+    if (_cpu == CGB_TYPE) cpu_fast();
+#endif
+
     /* SGB detection + palette setup (no-op on plain DMG/MGB/CGB) */
     sgb_init();
 
