@@ -103,12 +103,56 @@ void ui_print_countdown(uint8_t secs) {
 
 /* ---- main screen ------------------------------------------------------- */
 
+#define NAME_DISPLAY_W  13u    /* visible chars in the main list */
+#define SCROLL_PAD       4u    /* spaces between repetitions when looping  */
+#define SCROLL_FRAMES   24u    /* frames per scroll step (~24/60 = 0.4s)   */
+
+/* Render a name into a fixed-width slot, auto-scrolling if it doesn't fit.
+ * `scroll_phase` advances 1 every SCROLL_FRAMES; we wrap modulo (len + pad). */
+static void draw_scrolling_name(uint8_t x, uint8_t y, const char *name,
+                                  uint8_t width, uint8_t scrolling,
+                                  uint16_t scroll_phase) {
+    uint8_t len = 0u;
+    while (name[len] && len < 32u) len++;
+
+    if (!scrolling || len <= width) {
+        uint8_t i;
+        for (i = 0; i < width; i++) {
+            put_at(x + i, y, (i < len) ? name[i] : ' ');
+        }
+        return;
+    }
+
+    {
+        uint16_t cycle  = (uint16_t)len + SCROLL_PAD;
+        uint16_t offset = scroll_phase % cycle;
+        uint8_t  i;
+        for (i = 0; i < width; i++) {
+            uint16_t pos = (offset + i) % cycle;
+            put_at(x + i, y, (pos < len) ? name[(uint8_t)pos] : ' ');
+        }
+    }
+}
+
 void ui_draw_main(uint8_t scroll, uint8_t selected, uint32_t unix_time) {
+    static uint16_t s_scroll_phase = 0u;
+    static uint8_t  s_frame_ctr    = 0u;
+    /* TOTP cache so we don't re-HMAC on every frame just to ticker-scroll */
+    static uint32_t s_cache_window = 0xFFFFFFFFUL;
+    static uint8_t  s_cache_scroll = 0xFFu;
+    static uint32_t s_cache_codes[4];
+
     uint8_t count = storage_count();
     uint8_t rows  = 4u;
     uint8_t i;
     Account acct;
-    uint32_t code;
+    uint32_t window = unix_time / 30UL;
+    uint8_t  cache_valid = (window == s_cache_window && scroll == s_cache_scroll);
+
+    if (++s_frame_ctr >= SCROLL_FRAMES) {
+        s_frame_ctr = 0u;
+        s_scroll_phase++;
+    }
 
     /* Don't clear every call — overwrite same positions to avoid flicker. */
     gotoxy(0, 0); print_fixed("    == TOTP GB ==   ", 20u);
@@ -121,15 +165,27 @@ void ui_draw_main(uint8_t scroll, uint8_t selected, uint32_t unix_time) {
     for (i = 0; i < rows && (scroll + i) < count; i++) {
         uint8_t idx = scroll + i;
         uint8_t row = 3u + i * 3u;  /* rows 3, 6, 9, 12 */
+        uint32_t code;
 
         storage_get(idx, &acct);
-        code = totp_generate(acct.secret, unix_time);
+        if (cache_valid) {
+            code = s_cache_codes[i];
+        } else {
+            code = totp_generate(acct.secret, unix_time);
+            s_cache_codes[i] = code;
+        }
 
-        gotoxy(0, row);
-        putchar(idx == selected ? '>' : ' ');
-        print_fixed(acct.name, 17u);
-        putchar(idx == selected ? '<' : ' ');
-        putchar(' ');
+        put_at(0, row, idx == selected ? '>' : ' ');
+        /* Only the selected row ticker-scrolls; others stay truncated. */
+        draw_scrolling_name(1u, row, acct.name, NAME_DISPLAY_W,
+                            (idx == selected), s_scroll_phase);
+        {
+            uint8_t pad;
+            for (pad = NAME_DISPLAY_W + 1u; pad < 18u; pad++)
+                put_at(pad, row, ' ');
+        }
+        put_at(18u, row, idx == selected ? '<' : ' ');
+        put_at(19u, row, ' ');
 
         gotoxy(2, row + 1u);
         if (code != 0xFFFFFFFFUL) {
@@ -147,6 +203,9 @@ void ui_draw_main(uint8_t scroll, uint8_t selected, uint32_t unix_time) {
     gotoxy(0, 15); print_fixed("--------------------", 20u);
     gotoxy(0, 16); print_fixed(" A:View   START:Add ", 20u);
     gotoxy(0, 17); print_fixed(" B:Sync  SELECT:Del ", 20u);
+
+    s_cache_window = window;
+    s_cache_scroll = scroll;
 }
 
 /* ---- character dial --------------------------------------------------- */

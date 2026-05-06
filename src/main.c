@@ -205,9 +205,10 @@ void main(void) {
             if (selected < scroll) scroll = selected;
             if (selected >= scroll + 4u) scroll = selected - 3u;
 
-            /* Redraw only if something visible changed */
+            /* Always redraw — ui_draw_main caches HMAC results internally
+             * so per-frame cost is just memory writes for the ticker scroll. */
             if (need_clear) { ui_clear(); need_clear = 0u; }
-            if (unix_time != prev_t || selected != prev_sel || count != prev_cnt) {
+            {
                 uint32_t window = unix_time / 30UL;
                 if (window != prev_window && prev_window != 0xFFFFFFFFUL && count > 0u) {
                     sfx_flip();
