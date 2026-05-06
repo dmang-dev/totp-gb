@@ -93,6 +93,7 @@ static void apply_palette(uint8_t idx) {
 #include "totp.h"
 #include "ui.h"
 #include "input.h"
+#include "audio.h"
 
 /* Current Unix time = base_epoch + RTC elapsed seconds */
 static uint32_t g_base_epoch;
@@ -149,8 +150,8 @@ void main(void) {
     uint8_t count;
     uint8_t first_boot;
 
-    /* Disable audio to avoid noise from uninitialized APU */
-    NR52_REG = 0x00u;
+    /* Initialise APU for SFX */
+    audio_init();
 
     /* Turn on display */
     DISPLAY_ON;
@@ -211,8 +212,8 @@ void main(void) {
             }
 
         /* Navigation */
-        if (input_pressed(J_UP) && selected > 0u)              selected--;
-        if (input_pressed(J_DOWN) && selected + 1u < count)    selected++;
+        if (input_pressed(J_UP) && selected > 0u)   { selected--; sfx_click(); }
+        if (input_pressed(J_DOWN) && selected + 1u < count) { selected++; sfx_click(); }
 
             /* L/R cycles palettes — colour on GBC, BGP grayscale on DMG/MGB */
             if (input_pressed(J_LEFT) || input_pressed(J_RIGHT)) {
@@ -224,13 +225,16 @@ void main(void) {
                     p = (uint8_t)((p + 1u) % NUM_PALETTES);
                 storage_set_palette(p);
                 apply_palette(p);
+                sfx_click();
             }
 
             /* Add account */
             if (input_pressed(J_START)) {
                 if (count < MAX_ACCOUNTS) {
+                    sfx_confirm();
                     ui_screen_add();
                 } else {
+                    sfx_error();
                     ui_clear();
                     gotoxy(1, 8); puts("Account list full!");
                     gotoxy(1, 9); puts("Delete one first.");
@@ -241,16 +245,20 @@ void main(void) {
 
             /* View / delete */
             if (input_pressed(J_A) && count > 0u) {
-                uint8_t deleted = ui_screen_view(selected, unix_time);
-                if (deleted && selected > 0u && selected >= storage_count()) {
-                    selected = storage_count();
-                    if (selected > 0u) selected--;
+                sfx_click();
+                {
+                    uint8_t deleted = ui_screen_view(selected, unix_time);
+                    if (deleted && selected > 0u && selected >= storage_count()) {
+                        selected = storage_count();
+                        if (selected > 0u) selected--;
+                    }
                 }
                 need_clear = 1u; prev_t = 0xFFFFFFFFUL;
             }
 
             /* Time sync */
             if (input_pressed(J_B)) {
+                sfx_confirm();
                 sync_time();
                 need_clear = 1u; prev_t = 0xFFFFFFFFUL;
             }
