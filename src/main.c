@@ -31,7 +31,7 @@
 #ifdef GBC_BUILD
 #include <gb/cgb.h>
 
-#define NUM_PALETTES 6u
+#define NUM_PALETTES 12u
 static const palette_color_t palettes[NUM_PALETTES][4] = {
     /* 0 — Phosphor green (default) */
     { RGB8( 16,  32,  16), RGB8( 64, 112,  64),
@@ -51,6 +51,24 @@ static const palette_color_t palettes[NUM_PALETTES][4] = {
     /* 5 — Magenta dusk */
     { RGB8( 32,   8,  40), RGB8(120,  32, 112),
       RGB8(216,  88, 184), RGB8(248, 200, 240) },
+    /* 6 — Pip-Boy (Fallout green-on-black, no AA grays) */
+    { RGB8(  0,  16,   0), RGB8( 24,  72,  24),
+      RGB8( 80, 200,  80), RGB8(160, 255, 160) },
+    /* 7 — Solarized Dark */
+    { RGB8(  0,  43,  54), RGB8(  7,  54,  66),
+      RGB8(131, 148, 150), RGB8(238, 232, 213) },
+    /* 8 — Atari 2600 (red on cream) */
+    { RGB8(248, 232, 184), RGB8(232, 168,  72),
+      RGB8(192,  72,  48), RGB8( 80,  16,  16) },
+    /* 9 — Game Boy Camera (warm sepia) */
+    { RGB8( 32,  16,   0), RGB8(112,  72,  40),
+      RGB8(208, 168, 120), RGB8(248, 232, 200) },
+    /* 10 — Hot pink (because why not) */
+    { RGB8( 40,  16,  32), RGB8(168,  64, 120),
+      RGB8(248, 144, 200), RGB8(255, 224, 240) },
+    /* 11 — Ice (pale cyan on navy) */
+    { RGB8(  8,  24,  56), RGB8( 56,  96, 144),
+      RGB8(160, 216, 240), RGB8(232, 248, 255) },
 };
 
 static void apply_palette(uint8_t idx) {
@@ -72,13 +90,16 @@ static void apply_palette(uint8_t idx) {
  *   0x90 = 10 01 00 00  — soft / dimmer text
  *   0x03 = 00 00 00 11  — dark mode w/ no AA (white text on solid black)
  */
-#define NUM_PALETTES 5u
+#define NUM_PALETTES 8u
 static const uint8_t bgp_palettes[NUM_PALETTES] = {
     0xE4u,  /* 0 — Normal           */
     0x1Bu,  /* 1 — Inverted         */
     0xFCu,  /* 2 — High Contrast    */
     0x90u,  /* 3 — Soft             */
     0x03u,  /* 4 — Dark Mode        */
+    0x4Eu,  /* 5 — Two-tone Light   (00-10-11-01) */
+    0xB1u,  /* 6 — Two-tone Dark    (10-11-00-01) */
+    0xE1u,  /* 7 — Faded Sun        (11-10-00-01) */
 };
 
 static void apply_palette(uint8_t idx) {
