@@ -1,4 +1,4 @@
-# Build artifacts
+# Build intermediates (everything except the published ROM artifacts)
 *.gb
 *.gbc
 *.ihx
@@ -13,6 +13,10 @@
 *.o
 *.d
 s.cdb
+
+# ...but DO commit the published ROMs
+!artifacts/*.gb
+!artifacts/*.gbc
 
 # GBDK toolchain (vendored locally, not committed)
 gbdk/

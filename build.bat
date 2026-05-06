@@ -28,10 +28,13 @@ if "%TARGET%"=="" set TARGET=both
 if "%TARGET%"=="dmg" goto build_dmg
 if "%TARGET%"=="gbc" goto build_gbc
 
+if not exist "%~dp0artifacts" mkdir "%~dp0artifacts"
+
 :build_dmg
 echo [DMG] Building totp-gb.gb ...
 "%GBDK_DIR%\bin\lcc.exe" %CFLAGS% %LFLAGS% %MFLAGS% -o totp-gb.gb %SRCS%
 if errorlevel 1 goto fail
+copy /Y totp-gb.gb "%~dp0artifacts\totp-gb.gb" >nul
 if "%TARGET%"=="dmg" goto ok
 
 :build_gbc
@@ -42,10 +45,11 @@ REM          SGB palette flag still works there.
 REM -DGBC_BUILD enables CGB palette setup in main.c
 "%GBDK_DIR%\bin\lcc.exe" %CFLAGS% %LFLAGS% %MFLAGS% -Wm-yc -Wf-DGBC_BUILD -o totp-gbc.gbc %SRCS%
 if errorlevel 1 goto fail
+copy /Y totp-gbc.gbc "%~dp0artifacts\totp-gbc.gbc" >nul
 
 :ok
 echo.
-echo Build OK.
+echo Build OK. (ROMs published to artifacts\)
 endlocal
 exit /b 0
 
