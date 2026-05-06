@@ -185,10 +185,11 @@ void main(void) {
 
     /* Main loop */
     {
-        uint32_t prev_t   = 0xFFFFFFFFUL;
-        uint8_t  prev_sel = 0xFFu;
-        uint8_t  prev_cnt = 0xFFu;
-        uint8_t  need_clear = 1u;   /* clear on first entry */
+        uint32_t prev_t      = 0xFFFFFFFFUL;
+        uint32_t prev_window = 0xFFFFFFFFUL;
+        uint8_t  prev_sel    = 0xFFu;
+        uint8_t  prev_cnt    = 0xFFu;
+        uint8_t  need_clear  = 1u;   /* clear on first entry */
 
         for (;;) {
             uint32_t unix_time;
@@ -207,6 +208,11 @@ void main(void) {
             /* Redraw only if something visible changed */
             if (need_clear) { ui_clear(); need_clear = 0u; }
             if (unix_time != prev_t || selected != prev_sel || count != prev_cnt) {
+                uint32_t window = unix_time / 30UL;
+                if (window != prev_window && prev_window != 0xFFFFFFFFUL && count > 0u) {
+                    sfx_flip();
+                }
+                prev_window = window;
                 ui_draw_main(scroll, selected, unix_time);
                 prev_t = unix_time; prev_sel = selected; prev_cnt = count;
             }

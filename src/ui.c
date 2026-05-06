@@ -74,15 +74,30 @@ void ui_print_code(uint32_t code) {
 }
 
 void ui_print_countdown(uint8_t secs) {
+    /*
+     * When 5 seconds or less remain, swap the bar fill character to '!' and
+     * blink the seconds digits every other second. Visually screams "code
+     * is about to roll over" without needing colour support.
+     */
     uint8_t bars = (secs * 15u) / 30u;
     uint8_t i;
     uint8_t x = posx();
     uint8_t y = posy();
-    put_at(x,    y, '0' + secs / 10u);
-    put_at(x+1u, y, '0' + secs % 10u);
+    uint8_t urgent = (secs <= 5u);
+    char    fill   = urgent ? '!' : '=';
+    char    blank  = urgent ? '!' : '-';      /* fill the empty slots too  */
+    uint8_t blink  = urgent && (secs & 1u);   /* invert digits on odd secs */
+
+    if (blink) {
+        put_at(x,    y, ' ');
+        put_at(x+1u, y, ' ');
+    } else {
+        put_at(x,    y, '0' + secs / 10u);
+        put_at(x+1u, y, '0' + secs % 10u);
+    }
     put_at(x+2u, y, 's');
     put_at(x+3u, y, '[');
-    for (i = 0; i < 15u; i++) put_at(x + 4u + i, y, i < bars ? '=' : '-');
+    for (i = 0; i < 15u; i++) put_at(x + 4u + i, y, i < bars ? fill : blank);
     put_at(x + 19u, y, ']');
 }
 
