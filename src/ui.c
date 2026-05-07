@@ -74,21 +74,10 @@ void ui_print_code(uint32_t code) {
     put_at(x+6u, y, d[5]);
 }
 
-void ui_print_countdown(uint8_t secs) {
-    /*
-     * Normal state: '=' bars representing fraction of 30s window remaining.
-     * Final 5 seconds: switch to one '!' per second remaining (5..1) so each
-     * tick is a distinct visual change. Seconds digits also blink off on
-     * odd seconds during this window.
-     */
-    uint8_t i;
-    uint8_t x = posx();
-    uint8_t y = posy();
+/* "XXs" with blink on odd seconds when urgent. Writes 3 chars at (x,y). */
+static void draw_countdown_secs(uint8_t x, uint8_t y, uint8_t secs) {
     uint8_t urgent = (secs <= 5u && secs > 0u);
-    uint8_t bars   = urgent ? secs : (uint8_t)((secs * 15u) / 30u);
-    char    fill   = urgent ? '!'  : '=';
     uint8_t blink  = urgent && (secs & 1u);
-
     if (blink) {
         put_at(x,    y, ' ');
         put_at(x+1u, y, ' ');
@@ -97,9 +86,29 @@ void ui_print_countdown(uint8_t secs) {
         put_at(x+1u, y, '0' + secs % 10u);
     }
     put_at(x+2u, y, 's');
-    put_at(x+3u, y, '[');
-    for (i = 0; i < 15u; i++) put_at(x + 4u + i, y, i < bars ? fill : '-');
-    put_at(x + 19u, y, ']');
+}
+
+/* "[bars]" of given width between brackets. Writes width+2 chars at (x,y).
+ * Normal: '=' fill scaled to fraction of 30s.
+ * Urgent (last 5s): one '!' per second remaining. */
+static void draw_countdown_bar(uint8_t x, uint8_t y, uint8_t secs, uint8_t width) {
+    uint8_t i;
+    uint8_t urgent = (secs <= 5u && secs > 0u);
+    uint8_t bars   = urgent ? secs
+                            : (uint8_t)(((uint16_t)secs * (uint16_t)width) / 30u);
+    char    fill   = urgent ? '!' : '=';
+
+    put_at(x, y, '[');
+    for (i = 0; i < width; i++) put_at(x + 1u + i, y, i < bars ? fill : '-');
+    put_at(x + 1u + width, y, ']');
+}
+
+void ui_print_countdown(uint8_t secs) {
+    /* Combined "XXs[15-bar]" — 20 chars total at the current cursor pos. */
+    uint8_t x = posx();
+    uint8_t y = posy();
+    draw_countdown_secs(x, y, secs);
+    draw_countdown_bar(x + 3u, y, secs, 15u);
 }
 
 /* ---- settings screen --------------------------------------------------- */
@@ -647,8 +656,8 @@ uint8_t ui_screen_view(uint8_t idx, uint32_t unix_time) {
     gotoxy(0, 1);  print_fixed("--------------------", 20u);
     gotoxy(1, 2);  print_fixed("Name:  ", 7u); print_fixed(acct.name, 13u);
     gotoxy(1, 4);  print_fixed("Code:  ", 7u);
-    gotoxy(1, 5);  print_fixed("Time:", 5u);
-    /* Countdown bar gets its own row at col 0 — the 20-char bar barely fits. */
+    gotoxy(1, 5);  print_fixed("Time:  ", 7u);   /* seconds rendered live  */
+    /* Countdown bar on row 6, indented 1 col on each side (width = 16) */
     gotoxy(1, 8);  print_fixed("Secret:", 7u);
     /*
      * Secret display: indented 1 col to align with the other labels.
@@ -685,8 +694,8 @@ uint8_t ui_screen_view(uint8_t idx, uint32_t unix_time) {
             prev_window = window;
         }
         if (secs != prev_secs) {
-            gotoxy(0, 6);
-            ui_print_countdown(secs);
+            draw_countdown_secs(8u, 5u, secs);          /* "XXs" on Time: row */
+            draw_countdown_bar (1u, 6u, secs, 16u);     /* padded bar below   */
             prev_secs = secs;
         }
         if (choice != prev_choice) {
