@@ -1,8 +1,6 @@
 # Build intermediates (everything except the published ROM artifacts)
 *.gb
 *.gbc
-*.gba
-*.elf
 *.ihx
 *.map
 *.sym
@@ -16,13 +14,9 @@
 *.d
 s.cdb
 
-# devkitARM intermediate dirs
-totp-gba/build/
-
 # ...but DO commit the published ROMs
 !artifacts/*.gb
 !artifacts/*.gbc
-!artifacts/*.gba
 
 # GBDK toolchain (vendored locally, not committed)
 gbdk/
