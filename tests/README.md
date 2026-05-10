@@ -61,9 +61,10 @@ be in the table.
 
 ## Running the verifier
 
-1. Build the test ROM:
+1. Build the test ROM (from the project root):
    ```
-   I:\totp-gb\build.bat test
+   build.bat test         # Windows
+   make test              # Linux / macOS / CI
    ```
    Produces `artifacts/totp-gb-test.gb`.
 2. Open mGBA. **File -> Load ROM ->** `artifacts/totp-gb-test.gb`.
@@ -110,13 +111,16 @@ relevant calls:
 | 4. Screenshot | `mgba_screenshot("...")` |
 
 Bridge limitations to be aware of (see
-`I:/mcp-mgba/docs/GB-COMPAT-FINDINGS.md` for details):
+[mcp-mgba's `docs/GB-COMPAT-FINDINGS.md`](https://github.com/dmang-dev/mcp-mgba/blob/main/docs/GB-COMPAT-FINDINGS.md)
+for details — most are fixed in v0.2.0+):
 
-- `emu:write8` does **not** trigger MBC3 register writes, so you
-  cannot seed SRAM directly from MCP — the test ROM is the
-  workaround.
-- `mgba_pause` and `mgba_advance_frames` are nil in some mGBA
-  builds, so scripted button sequences need slow pacing.
+- Pre-v0.2.0: `emu:write8` did **not** trigger MBC3 register writes,
+  so SRAM couldn't be seeded directly — this test build (with the
+  `TEST_SEED_ON_BOOT` flag) was the workaround. v0.2.0 added
+  `mgba_save_state` / `mgba_load_state` which sidestep the issue.
+- Pre-v0.2.0: `mgba_pause` and `mgba_advance_frames` were nil on
+  some mGBA builds; v0.2.0 feature-detects and exposes capabilities
+  in `mgba_get_info`.
 
 ---
 
