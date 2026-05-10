@@ -4,6 +4,7 @@ REM
 REM Usage:   build.bat            (build both)
 REM          build.bat dmg        (DMG only)
 REM          build.bat gbc        (GBC only)
+REM          build.bat test       (DMG with TEST_SEED_ON_BOOT defined)
 
 setlocal
 
@@ -25,8 +26,9 @@ set SRCS=src\main.c src\sha1.c src\hmac.c src\base32.c src\rtc.c src\storage.c s
 set TARGET=%1
 if "%TARGET%"=="" set TARGET=both
 
-if "%TARGET%"=="dmg" goto build_dmg
-if "%TARGET%"=="gbc" goto build_gbc
+if "%TARGET%"=="dmg"  goto build_dmg
+if "%TARGET%"=="gbc"  goto build_gbc
+if "%TARGET%"=="test" goto build_test
 
 if not exist "%~dp0artifacts" mkdir "%~dp0artifacts"
 
@@ -46,6 +48,17 @@ REM -DGBC_BUILD enables CGB palette setup in main.c
 "%GBDK_DIR%\bin\lcc.exe" %CFLAGS% %LFLAGS% %MFLAGS% -Wm-yc -Wf-DGBC_BUILD -o totp-gbc.gbc %SRCS%
 if errorlevel 1 goto fail
 copy /Y totp-gbc.gbc "%~dp0artifacts\totp-gbc.gbc" >nul
+
+if "%TARGET%"=="both" goto ok
+
+:build_test
+echo [TEST] Building totp-gb-test.gb (TEST_SEED_ON_BOOT) ...
+REM -Wf-DTEST_SEED_ON_BOOT pre-seeds SRAM with the JBSWY3DPEHPK3PXP
+REM     Hello! account at every boot, so the mGBA MCP harness can verify
+REM     a known TOTP code without driving the UI.
+"%GBDK_DIR%\bin\lcc.exe" %CFLAGS% %LFLAGS% %MFLAGS% -Wf-DTEST_SEED_ON_BOOT -o totp-gb-test.gb %SRCS%
+if errorlevel 1 goto fail
+copy /Y totp-gb-test.gb "%~dp0artifacts\totp-gb-test.gb" >nul
 
 :ok
 echo.

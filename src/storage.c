@@ -59,6 +59,33 @@ uint8_t storage_init(void) {
         sram_write(OFF_COUNT,    0u);
         sram_write32(OFF_EPOCH,  0UL);
     }
+
+#ifdef TEST_SEED_ON_BOOT
+    /*
+     * Test build: unconditionally re-seed SRAM at every boot with a known
+     * fixture (epoch + JBSWY3DPEHPK3PXP "Hello!" account at slot 0). Lets
+     * the mGBA MCP harness verify code generation against a known answer
+     * without having to drive the UI to add an account.
+     *
+     * Seeded epoch  : 1778088090  (2026-05-06 17:21:30 UTC)
+     * Expected code : 283711      (T window 59269603)
+     */
+    {
+        static const char SEED_NAME[ACCOUNT_NAME_LEN] = "Test";
+        static const char SEED_SECRET[SECRET_B32_LEN] = "JBSWY3DPEHPK3PXP";
+        uint8_t i;
+        sram_write(OFF_MAGIC,    MAGIC_0);
+        sram_write(OFF_MAGIC+1u, MAGIC_1);
+        sram_write(OFF_COUNT,    1u);
+        sram_write32(OFF_EPOCH,  1778088090UL);
+        for (i = 0; i < ACCOUNT_NAME_LEN; i++)
+            sram_write(OFF_ACCOUNTS + i, (uint8_t)SEED_NAME[i]);
+        for (i = 0; i < SECRET_B32_LEN; i++)
+            sram_write(OFF_ACCOUNTS + ACCOUNT_NAME_LEN + i, (uint8_t)SEED_SECRET[i]);
+        ok = 1u;   /* report 'returning user' so main skips the welcome screen */
+    }
+#endif
+
     sram_disable();
     return ok;
 }
