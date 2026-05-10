@@ -24,9 +24,14 @@ gbdk/
 # Reconstruction backup (used during git history setup)
 .reconstruct_backup/
 
-# SRAM saves
+# SRAM saves and emulator state
 *.srm
 *.sav
+*.ss?
+
+# Headless verifier output
+tests/result.txt
+/tmp/mgba.log
 
 # OS / editor
 Thumbs.db

@@ -1,0 +1,83 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: build + verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache GBDK-2020
+        id: cache-gbdk
+        uses: actions/cache@v4
+        with:
+          path: gbdk
+          key: gbdk-2020-4.4.0-linux64
+
+      - name: Download GBDK-2020
+        if: steps.cache-gbdk.outputs.cache-hit != 'true'
+        run: |
+          curl -sSL -o gbdk.tar.gz \
+            https://github.com/gbdk-2020/gbdk-2020/releases/download/4.4.0/gbdk-linux64.tar.gz
+          tar -xzf gbdk.tar.gz
+          rm gbdk.tar.gz
+          test -x gbdk/bin/lcc
+
+      - name: Build all ROMs (DMG + CGB + test)
+        run: make GBDK_DIR=$PWD/gbdk all
+
+      - name: Verify ROM headers + sizes
+        run: |
+          set -eu
+          for rom in artifacts/totp-gb.gb artifacts/totp-gbc.gbc artifacts/totp-gb-test.gb; do
+              echo "=== $rom ==="
+              ls -l "$rom"
+              # Cart type byte at 0x147 must be 0x10 (MBC3+TIMER+RAM+BATTERY)
+              cart=$(xxd -s 0x147 -l 1 -p "$rom")
+              [[ "$cart" == "10" ]] || { echo "wrong cart type: $cart"; exit 1; }
+              # SGB flag at 0x146 must be 0x03
+              sgb=$(xxd -s 0x146 -l 1 -p "$rom")
+              [[ "$sgb" == "03" ]] || { echo "missing SGB flag: $sgb"; exit 1; }
+          done
+          # GBC flag at 0x143: 0x00 for plain, 0x80 for CGB-compatible
+          gbc=$(xxd -s 0x143 -l 1 -p artifacts/totp-gbc.gbc)
+          [[ "$gbc" == "80" ]] || { echo "wrong CGB flag in gbc build: $gbc"; exit 1; }
+          dmg=$(xxd -s 0x143 -l 1 -p artifacts/totp-gb.gb)
+          [[ "$dmg" == "00" ]] || { echo "unexpected CGB flag in dmg build: $dmg"; exit 1; }
+          echo "All header checks passed."
+
+      - name: Install mGBA + xvfb
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends mgba-sdl xvfb
+          mgba --version || true
+
+      - name: Run end-to-end verifier (totp-gb-test.gb)
+        run: |
+          chmod +x tests/run_headless.sh
+          ./tests/run_headless.sh
+
+      - name: Upload ROM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: roms
+          path: artifacts/*.gb*
+          retention-days: 30
+
+      - name: Upload mGBA log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mgba-debug-log
+          path: |
+            /tmp/mgba.log
+            tests/result.txt
+          if-no-files-found: ignore

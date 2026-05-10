@@ -1,55 +1,70 @@
-# TOTP GB — Makefile for GBDK-2020
+# totp-gb -- GBDK-2020 makefile
 #
-# Prerequisites:
-#   GBDK-2020: https://github.com/gbdk-2020/gbdk-2020/releases
-#   Set GBDK_DIR to your installation path, or pass it on the command line.
+# Default target builds DMG (.gb), CGB (.gbc), and the seeded test
+# build (.gb with TEST_SEED_ON_BOOT). Used by both local Linux/macOS
+# work and GitHub Actions CI; the Windows side has build.bat.
 #
 # Usage:
-#   make GBDK_DIR=/path/to/gbdk-2020
+#   make                      build all three
+#   make dmg | gbc | test     build one
+#   make GBDK_DIR=/opt/gbdk   override toolchain location
 #   make clean
+#
 
-# Set GBDK_DIR to your GBDK-2020 install (Windows or Linux/Mac path both work).
-# Download from: https://github.com/gbdk-2020/gbdk-2020/releases
-GBDK_DIR ?= I:\totp-gb\gbdk
+GBDK_DIR ?= ./gbdk
+CC       := $(GBDK_DIR)/bin/lcc
+ARTIFACTS := artifacts
 
-CC   = $(GBDK_DIR)/bin/lcc
-EMU  = mgba           # change to bgb, sameboy, etc.
-
-TARGET  = totp-gb.gb
-
-SRCS = \
-    src/main.c   \
-    src/sha1.c   \
-    src/hmac.c   \
-    src/base32.c \
-    src/rtc.c    \
-    src/storage.c \
-    src/totp.c   \
-    src/input.c  \
-    src/ui.c
+SRCS := \
+    src/main.c    src/sha1.c   src/hmac.c   src/base32.c \
+    src/rtc.c     src/storage.c src/totp.c   src/input.c \
+    src/ui.c      src/audio.c  src/sgb_border.c
 
 # Cartridge header flags:
-#   -Wl-yt0x10  : MBC3 + TIMER + RAM + BATTERY  (type 0x10)
-#   -Wl-ya1     : 1 RAM bank (8 KB SRAM)
-#   -Wl-yo2     : 2 ROM banks (32 KB)
-CFLAGS  = -Wf-MMD
-LFLAGS  = -Wl-yt0x10 -Wl-ya1 -Wl-yo2
+#   -Wl-yt0x10  MBC3+TIMER+RAM+BATTERY (type 0x10)
+#   -Wl-ya1     1 RAM bank (8 KB SRAM)
+#   -Wl-yo2     2 ROM banks (32 KB)
+LFLAGS_BASE := -Wl-yt0x10 -Wl-ya1 -Wl-yo2
+MFLAGS      := -Wm-ys
 
-.PHONY: all clean run
+CFLAGS      := -Wf-MMD
 
-all: $(TARGET)
+DMG_OUT  := totp-gb.gb
+GBC_OUT  := totp-gbc.gbc
+TEST_OUT := totp-gb-test.gb
 
-$(TARGET): $(SRCS)
-	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $(SRCS)
+.PHONY: all dmg gbc test clean check-gbdk artifacts
 
-run: $(TARGET)
-	$(EMU) $(TARGET)
+all: dmg gbc test
+
+check-gbdk:
+	@test -x "$(CC)" || { \
+	    echo "ERROR: GBDK-2020 not found at $(GBDK_DIR)/bin/lcc"; \
+	    echo "Download from https://github.com/gbdk-2020/gbdk-2020/releases"; \
+	    echo "or set GBDK_DIR=<path>."; exit 1; }
+
+artifacts:
+	@mkdir -p $(ARTIFACTS)
+
+dmg: check-gbdk artifacts
+	@echo "[DMG] Building $(DMG_OUT)..."
+	"$(CC)" $(CFLAGS) $(LFLAGS_BASE) $(MFLAGS) -o $(DMG_OUT) $(SRCS)
+	cp -f $(DMG_OUT) $(ARTIFACTS)/$(DMG_OUT)
+
+gbc: check-gbdk artifacts
+	@echo "[GBC] Building $(GBC_OUT)..."
+	"$(CC)" $(CFLAGS) $(LFLAGS_BASE) $(MFLAGS) -Wm-yc -Wf-DGBC_BUILD \
+	    -o $(GBC_OUT) $(SRCS)
+	cp -f $(GBC_OUT) $(ARTIFACTS)/$(GBC_OUT)
+
+test: check-gbdk artifacts
+	@echo "[TEST] Building $(TEST_OUT) (TEST_SEED_ON_BOOT)..."
+	"$(CC)" $(CFLAGS) $(LFLAGS_BASE) $(MFLAGS) -Wf-DTEST_SEED_ON_BOOT \
+	    -o $(TEST_OUT) $(SRCS)
+	cp -f $(TEST_OUT) $(ARTIFACTS)/$(TEST_OUT)
 
 clean:
-	rm -f $(TARGET)
-	rm -f $(patsubst %.c,%.o,$(SRCS))
-	rm -f $(patsubst %.c,%.lst,$(SRCS))
-	rm -f $(patsubst %.c,%.asm,$(SRCS))
-	rm -f $(patsubst %.c,%.sym,$(SRCS))
-	rm -f $(patsubst %.c,%.map,$(SRCS))
-	rm -f $(patsubst %.c,%.d,$(SRCS))
+	rm -f $(DMG_OUT) $(GBC_OUT) $(TEST_OUT)
+	rm -f *.ihx *.map *.sym *.noi *.cdb *.lst *.rst *.asm
+	find src -name '*.o' -delete 2>/dev/null || true
+	find src -name '*.d' -delete 2>/dev/null || true
