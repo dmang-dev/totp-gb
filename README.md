@@ -11,7 +11,7 @@ into a real DMG and watch your phosphor-green secrets tick.
 [![Algorithm verified](https://img.shields.io/badge/HMAC--SHA1-RFC%206238-blue)](tests/)
 
 A native **Game Boy Advance** port lives in the sibling repo
-[`totp-gba`](../totp-gba) (240×160 layout, ARM7TDMI, libtonc).
+[`totp-gba`](https://github.com/dmang-dev/totp-gba) (240×160 layout, ARM7TDMI, libtonc).
 
 ---
 
@@ -94,12 +94,10 @@ watch.bat            # rebuilds both ROMs on save
 
 ## Testing
 
-A boot-time self-test runs four known-answer TOTP vectors against the
-`JBSWY3DPEHPK3PXP` ("Hello!\\xDE\\xAD\\xBE\\xEF") secret on the GBA build and
-prints PASS/FAIL via `mgba_log` — visible in mGBA's Log window, no I/O
-needed. The GB build's seeded test ROM (`build.bat test`) is verified
-end-to-end via a Lua script that reads the live code off the BG tile map and
-matches it against a 720-window precomputed table:
+The seeded test ROM (`build.bat test`) is verified end-to-end via a Lua
+script that reads the live code off the BG tile map and matches it
+against a 720-window precomputed table — proves the full crypto + RTC +
+UI pipeline on real GB hardware:
 
 ```
 .\build.bat test
