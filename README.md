@@ -142,3 +142,9 @@ watch.bat           Auto-rebuild on save
 - [pandocs](https://gbdev.io/pandocs/) — definitive GB hardware reference
 - [mcp-mgba](https://github.com/dmang-dev/mcp-mgba) — MCP server used to drive
   mGBA for the screenshot gallery and verification automation
+
+---
+
+## License
+
+Released under the [MIT License](LICENSE).
